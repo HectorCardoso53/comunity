@@ -715,8 +715,8 @@ async function downloadPDF(communityId, regionId) {
     pdfDoc.addImage(logo, 'PNG', (pageWidth - 50) / 2, 10, 50, 50);
 
     pdfDoc.setFontSize(18);
-    pdfDoc.text(`Comunidade: ${communityName}`, 20, 70);
-    pdfDoc.text(`Região: ${regionName}`, 20, 80);
+    pdfDoc.text(`Resposável da Familia: ${communityName}`, 20, 70);
+    pdfDoc.text(`Comunidade: ${regionName}`, 20, 80);
 
     const peopleSnapshot = await getDocs(collection(db, "regions", regionId, "communities", communityId, "people"));
     const peopleArray = peopleSnapshot.docs.map(doc => doc.data());
@@ -733,9 +733,6 @@ async function downloadPDF(communityId, regionId) {
       }
       
       pdfDoc.text(`${index + 1}. Nome: ${personData.name || "N/A"}`, 20, yPosition);
-      pdfDoc.text(`   ID: ${personData.id || "N/A"}`, 120, yPosition);
-      yPosition += 7;
-      pdfDoc.text(`   Número da Casa: ${personData.houseNumber || "N/A"}`, 20, yPosition);
       pdfDoc.text(`   Coordenadas: ${personData.coordinates || "N/A"}`, 120, yPosition);
       yPosition += 7;
       pdfDoc.text(`   Escolaridade: ${personData.education || "N/A"}`, 20, yPosition);
