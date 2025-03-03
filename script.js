@@ -648,97 +648,190 @@ async function editPerson(personId, personData, regionId, communityId) {
 }
 
 
-async function deletePerson(personId, regionId, communityId) {
-  console.log("Excluindo pessoa:", personId, regionId, communityId); // Verifique se os parâmetros estão corretos
+// Espera o DOM carregar completamente
+document.addEventListener("DOMContentLoaded", () => {
+  const downloadButton = document.getElementById("downloadPdfButton");
+
+  if (downloadButton) {
+    downloadButton.addEventListener("click", async () => {
+      const ids = await getRealIds(); // Obtém IDs reais do Firestore
+      if (!ids) {
+        console.error("Não foi possível obter os IDs reais.");
+        return;
+      }
+      
+      await downloadPDF(ids.communityId, ids.regionId);
+    });
+  } else {
+    console.error("Botão 'downloadPdfButton' não encontrado!");
+  }
+});
+
+// Função para obter IDs reais do Firestore
+async function getRealIds() {
   try {
-    await deleteDoc(doc(db, "regions", regionId, "communities", communityId, "people", personId));
-    console.log("Pessoa excluída!");
-    listPeople(communityId, regionId); // Atualiza a lista de pessoas
-  } catch (e) {
-    console.error("Erro ao excluir pessoa: ", e);
-  }
-}
-
-async function getCommunityName(communityId, regionId) {
-  console.log("Buscando comunidade com communityId:", communityId, "e regionId:", regionId);
-  const communityRef = doc(db, "regions", regionId, "communities", communityId);
-  const communitySnapshot = await getDoc(communityRef);
-
-  if (communitySnapshot.exists()) {
-    console.log("Comunidade encontrada:", communitySnapshot.data().name);
-    return communitySnapshot.data().name;
-  } else {
-    console.error("Comunidade não encontrada");
+    const regionsSnapshot = await getDocs(collection(db, "regions"));
+    if (regionsSnapshot.empty) {
+      console.error("Nenhuma região encontrada!");
+      return null;
+    }
+    
+    const regionDoc = regionsSnapshot.docs[0]; // Pega a primeira região encontrada
+    const regionId = regionDoc.id;
+    
+    const communitiesSnapshot = await getDocs(collection(db, "regions", regionId, "communities"));
+    if (communitiesSnapshot.empty) {
+      console.error("Nenhuma comunidade encontrada para a região:", regionId);
+      return null;
+    }
+    
+    const communityDoc = communitiesSnapshot.docs[0]; // Pega a primeira comunidade encontrada
+    const communityId = communityDoc.id;
+    
+    console.log("IDs reais encontrados:", { communityId, regionId });
+    return { communityId, regionId };
+  } catch (error) {
+    console.error("Erro ao buscar IDs reais:", error);
     return null;
   }
 }
 
-async function getRegionName(regionId) {
-  console.log("Buscando região com regionId:", regionId);
-  const regionRef = doc(db, "regions", regionId);
-  const regionSnapshot = await getDoc(regionRef);
-
-  if (regionSnapshot.exists()) {
-    console.log("Região encontrada:", regionSnapshot.data().name);
-    return regionSnapshot.data().name;
-  } else {
-    console.error("Região não encontrada");
-    return null;
-  }
-}
-
+// Função para gerar o PDF
 async function downloadPDF(communityId, regionId) {
   const { jsPDF } = window.jspdf;
   const pdfDoc = new jsPDF();
 
-  // Carrega os nomes da comunidade e região a partir do banco de dados
-  const communityName = await getCommunityName(communityId, regionId);
-  const regionName = await getRegionName(regionId);
+  try {
+    const communityName = await getCommunityName(communityId, regionId);
+    const regionName = await getRegionName(regionId);
 
-  if (!communityName || !regionName) {
-    console.error("Erro ao obter os nomes da comunidade ou região.");
-    return;
+    if (!communityName || !regionName) {
+      console.error("Não foi possível obter os nomes necessários. PDF não será gerado.");
+      return;
+    }
+
+    const logo = await loadImage('ACRQAT.png');
+    const pageWidth = pdfDoc.internal.pageSize.width;
+    pdfDoc.addImage(logo, 'PNG', (pageWidth - 50) / 2, 10, 50, 50);
+
+    pdfDoc.setFontSize(18);
+    pdfDoc.text(`Comunidade: ${communityName}`, 20, 70);
+    pdfDoc.text(`Região: ${regionName}`, 20, 80);
+
+    const peopleSnapshot = await getDocs(collection(db, "regions", regionId, "communities", communityId, "people"));
+    const peopleArray = peopleSnapshot.docs.map(doc => doc.data());
+
+    pdfDoc.setFontSize(12);
+    let yPosition = 100;
+    const pageHeight = pdfDoc.internal.pageSize.height;
+    
+    peopleArray.forEach((personData, index) => {
+      // Adiciona nova página antes de imprimir caso ultrapasse o limite
+      if (yPosition + 60 > pageHeight - 20) { 
+        pdfDoc.addPage();
+        yPosition = 20;
+      }
+      
+      pdfDoc.text(`${index + 1}. Nome: ${personData.name || "N/A"}`, 20, yPosition);
+      pdfDoc.text(`   ID: ${personData.id || "N/A"}`, 120, yPosition);
+      yPosition += 7;
+      pdfDoc.text(`   Número da Casa: ${personData.houseNumber || "N/A"}`, 20, yPosition);
+      pdfDoc.text(`   Coordenadas: ${personData.coordinates || "N/A"}`, 120, yPosition);
+      yPosition += 7;
+      pdfDoc.text(`   Escolaridade: ${personData.education || "N/A"}`, 20, yPosition);
+      pdfDoc.text(`   Profissão: ${personData.profession || "N/A"}`, 120, yPosition);
+      yPosition += 7;
+      pdfDoc.text(`   Idade: ${personData.age || "N/A"}`, 20, yPosition);
+      pdfDoc.text(`   Data de Nascimento: ${personData.birthDate || "N/A"}`, 120, yPosition);
+      yPosition += 7;
+      pdfDoc.text(`   CPF: ${personData.cpf || "N/A"}`, 20, yPosition);
+      pdfDoc.text(`   RG: ${personData.rg || "N/A"}`, 120, yPosition);
+      yPosition += 7;
+      pdfDoc.text(`   Carteira de Trabalho: ${personData.workCard || "N/A"}`, 20, yPosition);
+      pdfDoc.text(`   Título de Eleitor: ${personData.voterId || "N/A"}`, 120, yPosition);
+      yPosition += 7;
+      pdfDoc.text(`   Cartão SUS: ${personData.susCard || "N/A"}`, 20, yPosition);
+      pdfDoc.text(`   NIS: ${personData.nis || "N/A"}`, 120, yPosition);
+      yPosition += 7;
+      pdfDoc.text(`   Data de Chegada: ${personData.arrivalDate || "N/A"}`, 20, yPosition);
+      pdfDoc.text(`   Mãe: ${personData.mother || "N/A"}`, 120, yPosition);
+      yPosition += 7;
+      pdfDoc.text(`   Pai: ${personData.father || "N/A"}`, 20, yPosition);
+      pdfDoc.text(`   Estado Civil: ${personData.maritalStatus || "N/A"}`, 120, yPosition);
+      yPosition += 7;
+      pdfDoc.text(`   Associação: ${personData.association || "N/A"}`, 20, yPosition);
+      pdfDoc.text(`   Bolsa Família: ${personData.bolsaFamilia || "N/A"}`, 120, yPosition);
+      yPosition += 10;
+    });
+
+    pdfDoc.save('Comunidad_Region_People.pdf');
+  } catch (error) {
+    console.error("Erro ao gerar o PDF:", error);
   }
-
-  const logo = await loadImage('defesa.jpeg'); // Verifique o caminho da imagem
-  const pageWidth = pdfDoc.internal.pageSize.width;
-  const logoWidth = 50;
-  const logoHeight = 50;
-  const logoX = (pageWidth - logoWidth) / 2;
-  pdfDoc.addImage(logo, 'JPEG', logoX, 10, logoWidth, logoHeight);
-
-  // Adiciona título e conteúdo ao PDF...
 }
 
+
+
+// Função auxiliar para carregar imagem
 function loadImage(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.src = src;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL('image/jpeg'));
-    };
+    img.onload = () => resolve(img);
     img.onerror = (error) => {
       console.error("Erro ao carregar a imagem:", error);
       reject(error);
     };
+    img.src = src;
   });
 }
 
+// Função para obter nome da comunidade
+async function getCommunityName(communityId, regionId) {
+  try {
+    console.log(`Buscando nome da comunidade para ID: ${communityId}, Região: ${regionId}`);
+    if (!communityId || !regionId) {
+      console.error("IDs inválidos!");
+      return null;
+    }
 
+    const communityDoc = await getDoc(doc(db, "regions", regionId, "communities", communityId));
 
+    if (communityDoc.exists()) {
+      console.log("Nome da comunidade encontrado:", communityDoc.data().name);
+      return communityDoc.data().name;
+    } else {
+      console.error(`Comunidade com ID ${communityId} não encontrada!`);
+      return null;
+    }
+  } catch (error) {
+    console.error("Erro ao buscar o nome da comunidade:", error);
+    return null;
+  }
+}
 
+// Função para obter nome da região
+async function getRegionName(regionId) {
+  try {
+    console.log(`Buscando nome da região para ID: ${regionId}`);
+    if (!regionId) {
+      console.error("ID da região inválido!");
+      return null;
+    }
 
-// Adiciona o evento ao botão "Baixar Lista de Pessoas em PDF"
-document.getElementById("btnDownloadPDF").addEventListener("click", () => {
-  const communityId = 'comunidade-id-exemplo'; // Altere para o ID real da comunidade
-  const regionId = 'regiao-id-exemplo'; // Altere para o ID real da região
-  downloadPDF(communityId, regionId);
-});
+    const regionDoc = await getDoc(doc(db, "regions", regionId));
+
+    if (regionDoc.exists()) {
+      console.log("Nome da região encontrado:", regionDoc.data().name);
+      return regionDoc.data().name;
+    } else {
+      console.error(`Região com ID ${regionId} não encontrada!`);
+      return null;
+    }
+  } catch (error) {
+    console.error("Erro ao buscar o nome da região:", error);
+    return null;
+  }
+}
 
 
 
