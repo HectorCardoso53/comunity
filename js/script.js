@@ -2,17 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-app.js";
 import { getFirestore, collection, doc, deleteDoc, updateDoc, getDoc, addDoc, getDocs, query,where } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-auth.js";
-
-// Configuração do Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyAlQrh5lmZg0lbK6pB91kpuR35QOFeq3FE",
-  authDomain: "acrqat.firebaseapp.com",
-  projectId: "acrqat",
-  storageBucket: "acrqat.firebasestorage.app",
-  messagingSenderId: "727950527445",
-  appId: "1:727950527445:web:bc8f87e3688f89f7af0b5c",
-  measurementId: "G-K4T81M6ZHR"
-};
+import {firebaseConfig} from './firebase-config.js';
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -27,7 +17,7 @@ onAuthStateChanged(auth, (user) => {
     listRegions();
   } else {
     // Usuário não está logado, redireciona para a página de login
-    window.location.href = "/login.html"; // Substitua pela URL da sua página de login
+    window.location.href = "html/login.html"; // Substitua pela URL da sua página de login
   }
 })
 
@@ -116,7 +106,7 @@ async function listRegions() {
 
     // Substituindo o ícone FontAwesome por uma imagem
     const editIcon = document.createElement("img");
-    editIcon.src = "editar.png"; // Caminho para a imagem de editar
+    editIcon.src = "/images/editar.png"; // Caminho para a imagem de editar
     editIcon.alt = "Editar"; // Texto alternativo
     editIcon.style.width = "25px"; // Ajuste do tamanho da imagem
     editIcon.style.height = "25px"; // Ajuste do tamanho da imagem  
@@ -133,7 +123,7 @@ async function listRegions() {
     deleteButton.classList.add("btn", "btn-delete", "ms-2");
    
     const deleteIcon = document.createElement("img");
-    deleteIcon.src = "excluir.png"; // Caminho para a imagem de excluir
+    deleteIcon.src = "/images/excluir.png"; // Caminho para a imagem de excluir
     deleteIcon.alt = "Excluir"; // Texto alternativo
     deleteIcon.style.width = "25px"; // Ajuste do tamanho da imagem
     deleteIcon.style.height = "25px"; // Ajuste do tamanho da imagem
@@ -236,7 +226,7 @@ querySnapshot.forEach(async (doc) => {
   editButton.classList.add("btn", "btn-edit", "ms-2");
 
   const editIcon = document.createElement("img");
-  editIcon.src = "editar.png"; // Caminho para a imagem de editar
+  editIcon.src = "/images/editar.png"; // Caminho para a imagem de editar
   editIcon.alt = "Editar"; // Texto alternativo
   editIcon.style.width = "25px"; // Ajuste do tamanho da imagem
   editIcon.style.height = "25px"; // Ajuste do tamanho da imagem  
@@ -253,7 +243,7 @@ querySnapshot.forEach(async (doc) => {
   deleteButton.classList.add("btn", "btn-delete", "ms-2");
 
   const deleteIcon = document.createElement("img");
-  deleteIcon.src = "excluir.png"; // Caminho para a imagem de excluir
+  deleteIcon.src = "/images/excluir.png"; // Caminho para a imagem de excluir
   deleteIcon.alt = "Excluir"; // Texto alternativo
   deleteIcon.style.width = "25px"; // Ajuste do tamanho da imagem
   deleteIcon.style.height = "25px"; // Ajuste do tamanho da imagem
@@ -548,7 +538,7 @@ async function listPeople(communityId, regionId) {
       const editCell = document.createElement("td");
       const editButton = document.createElement("button");
       const editIcon = document.createElement("img");
-      editIcon.src = "editar.png"; // Caminho para a imagem de editar
+      editIcon.src = "/images/editar.png"; // Caminho para a imagem de editar
       editIcon.alt = "Editar"; // Texto alternativo
       editButton.style.border = "none"; // Remove a borda do botão
       editButton.style.outline = "none"; // Remove o contorno (foco)
@@ -567,7 +557,7 @@ async function listPeople(communityId, regionId) {
       const deleteCell = document.createElement("td");
       const deleteButton = document.createElement("button");
       const deleteIcon = document.createElement("img");
-      deleteIcon.src = "excluir.png"; // Caminho para a imagem de excluir
+      deleteIcon.src = "/images/excluir.png"; // Caminho para a imagem de excluir
       deleteIcon.alt = "Excluir"; // Texto alternativo
       deleteButton.style.border = "none"; // Remove a borda do botão
       deleteButton.style.outline = "none"; // Remove o contorno (foco)
@@ -831,7 +821,6 @@ async function getRegionName(regionId) {
 }
 
 
-
 // Função para filtrar pelo nome da pesssoa
 document.getElementById("searchInput").addEventListener("input", function () {
   let filter = this.value.toLowerCase();
@@ -867,7 +856,6 @@ async function onCommunityClick(communityId, communityName, regionId) {
   });
 }
 
-
 // Evento para adicionar uma nova região
 document.getElementById("btnAddRegion").addEventListener("click", () => {
   const regionName = prompt("Digite o nome da coumidade:");
@@ -880,5 +868,3 @@ document.getElementById("btnAddRegion").addEventListener("click", () => {
   }
 });
 
-// Carrega as regiões ao iniciar
-listRegions();
