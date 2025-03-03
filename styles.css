@@ -1,0 +1,185 @@
+/* Ajustar o fundo e cor do texto */
+body {
+  background-color: #56391eac; /* Fundo suave */
+}
+
+/* Cabeçalho */
+header {
+  background-color: #56391e; /* Cor laranja para o header */
+  color: white; /* Texto branco */
+}
+
+/* Rodapé */
+footer {
+  background-color: #56391e; /* Cor laranja para o footer */
+  color: white; /* Texto branco */
+}
+
+/* Títulos */
+h1, h2 {
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+
+.btn-primary {
+  background-color: #56391e !important; /* Botões laranja */
+  border-color: #56391e !important; /* Borda laranja */
+  color: white !important; /* Texto branco */
+}
+
+.btn-primary:hover {
+  background-color: #56391e !important; /* Cor laranja mais escura ao passar o mouse */
+  border-color: #56391e !important;
+}
+
+/* No seu arquivo CSS */
+.bg-orange {
+  background-color: #56391e;
+  color: white; /* Para garantir que o texto fique legível */
+}
+
+
+/* Botões de borda */
+.btn-outline-secondary {
+  border-color: #56391e; /* Borda laranja */
+  color: #56391e; /* Texto laranja */
+}
+
+.btn-outline-secondary:hover {
+  background-color: #56391e; /* Fundo laranja ao passar o mouse */
+  color: white; /* Texto branco ao passar o mouse */
+  border-color: #56391e;
+}
+
+/* Itens da lista */
+.list-group-item {
+  display: flex;
+  justify-content: space-between; 
+  background-color: #fff; /* Fundo branco para os itens da lista */
+  color: #333; /* Cor do texto */
+  align-items: center;
+  border: 1px solid #56391e; /* Borda laranja */
+}
+
+/* Nome da região vai à esquerda */
+.list-group-item span:first-child {
+  text-align: left;
+  flex-grow: 1; /* Faz o nome ocupar o máximo de espaço possível à esquerda */
+}
+
+/* Badge e botões são alinhados à direita */
+.badge {
+  margin-left: 10px; /* Espaçamento entre o badge e o próximo botão */
+}
+
+.btn {
+  margin-left: 10px; /* Espaçamento entre os botões */
+}
+
+/* Estilos para os botões */
+.btn-edit, .btn-delete {
+  background-color: transparent;
+  border: 1px solid #ccc;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #007bff;
+}
+
+.btn-edit:hover, .btn-delete:hover {
+  background-color: #f0f0f0;
+}
+
+.btn-delete {
+  color: #dc3545;
+}
+
+.btn-delete:hover {
+  background-color: #f8d7da;
+}
+
+.list-group-item:hover {
+  background-color: #ffecdb; /* Efeito de hover mais suave */
+}
+
+/* Títulos das seções */
+#regions h2, #communities h2, #people h2 {
+  color: #56391e; /* Cor laranja para títulos de seções */
+}
+
+/* Ajustando o botão de adicionar região */
+#btnAddRegion, #btnAddCommunity, #btnAddPerson {
+  background-color: #56391e; /* Fundo laranja */
+  border: none; /* Sem bordas extras */
+  color: white; /* Texto branco */
+  width: 100%; /* Garantir que ocupe toda a largura */
+}
+
+#btnAddRegion:hover, #btnAddCommunity:hover, #btnAddPerson:hover {
+  background-color: #56391e; /* Cor mais escura ao passar o mouse */
+  border-color: #56391e;
+}
+
+/* Ajustando a cor do texto da seção de pessoas */
+#people h2 {
+  color: #56391e; /* Cor laranja escuro */
+}
+
+/* Cor para links (caso existam) */
+a {
+  color: #56391e; /* Laranja para links */
+  text-decoration: none;
+}
+
+a:hover {
+  color: #56391e; /* Cor laranja mais escura ao passar o mouse */
+}
+
+/* Estilos para os botões */
+.btn-edit, .btn-delete {
+  background-color: transparent;
+  border: 1px solid #ccc;
+  padding: 5px 10px;
+  cursor: pointer;
+  margin-left: 10px;
+  font-size: 14px;
+  color: #007bff;
+}
+
+.btn-edit:hover, .btn-delete:hover {
+  background-color: #f0f0f0;
+}
+
+.btn-delete {
+  color: #dc3545;
+}
+
+.btn-delete:hover {
+  background-color: #f8d7da;
+}
+
+#communityContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+#communityList {
+  width: 100%;
+}
+
+#addCommunityButton {
+  margin-top: 15px; /* Distância entre a lista e o botão */
+  align-self: flex-start; /* Alinha o botão à esquerda */
+}
+
+.table-bordered {
+  border: 1px solid #56391e; /* Borda laranja na tabela */
+}
+
+.table-bordered th, .table-bordered td {
+  border: 1px solid #56391e; /* Borda laranja nas células da tabela */
+}
+
+
+
