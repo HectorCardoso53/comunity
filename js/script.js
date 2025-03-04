@@ -64,12 +64,38 @@ function editRegion(regionId, regionName) {
   }
 }
 
-// Função para excluir a região
-function deleteRegion(regionId, regionName) {
-  const confirmDelete = confirm(`Tem certeza que deseja excluir a comunidade "${regionName}"?`);
-  if (confirmDelete) {
-    // Lógica para excluir a região do banco de dados
-    removeRegion(regionId); // Verifique se esta função está implementada corretamente
+// Função para remover a região do banco de dados, incluindo as subcoleções
+async function removeRegion(regionId) {
+  try {
+    const regionRef = doc(db, "regions", regionId);
+    const communitiesRef = collection(db, "regions", regionId, "communities");
+    
+    // Obtém todas as comunidades dentro da região
+    const communitiesSnapshot = await getDocs(communitiesRef);
+    
+    // Para cada comunidade, exclua as pessoas dentro dela
+    for (const communityDoc of communitiesSnapshot.docs) {
+      const peopleRef = collection(communityDoc.ref, "people");
+      const peopleSnapshot = await getDocs(peopleRef);
+
+      // Exclui todas as pessoas dentro da comunidade
+      for (const personDoc of peopleSnapshot.docs) {
+        await deleteDoc(personDoc.ref);
+      }
+
+      // Agora, exclui a comunidade
+      await deleteDoc(communityDoc.ref);
+    }
+
+    // Agora que todas as subcoleções foram apagadas, podemos deletar a região
+    await deleteDoc(regionRef);
+    alert("Comunidade e todos os dados associados foram excluídos com sucesso!");
+
+    // Recarrega a lista de regiões
+    listRegions();
+  } catch (error) {
+    console.error("Erro ao excluir a comunidade e seus dados:", error);
+    alert("Ocorreu um erro ao excluir a comunidade.");
   }
 }
 
@@ -130,12 +156,19 @@ async function listRegions() {
     
     deleteButton.appendChild(deleteIcon);
 
-
+    function deleteRegion(regionId, regionName) {
+      const confirmDelete = confirm(`Tem certeza que deseja excluir a comunidade "${regionName}"?`);
+      if (confirmDelete) {
+        removeRegion(regionId);
+      }
+    }
+    
+    // Agora podemos adicionar o evento corretamente
     deleteButton.addEventListener("click", (e) => {
-      e.stopPropagation(); // Evita que o clique no botão de excluir dispare o evento de clique no item da lista
+      e.stopPropagation();
       deleteRegion(regionId, regionName);
     });
-
+  
     // Adiciona o evento de clique ao item da lista (para visualizar detalhes ou editar)
     listItem.addEventListener("click", () => onRegionClick(regionId, regionName));
 
@@ -157,14 +190,6 @@ async function updateRegionName(regionId, newRegionName) {
     name: newRegionName
   });
   alert(" Comunidade atualizada com sucesso!");
-  listRegions(); // Recarrega a lista de regiões
-}
-
-// Função para remover a região do banco de dados
-async function removeRegion(regionId) {
-  const regionRef = doc(db, "regions", regionId);
-  await deleteDoc(regionRef);
-  alert("Comunidade excluída com sucesso!");
   listRegions(); // Recarrega a lista de regiões
 }
 
@@ -313,10 +338,6 @@ async function getPeopleCountInCommunity(regionId, communityId) {
   return peopleSnapshot.size; // Retorna o número de documentos na subcoleção "people"
 }
 
-// Função para tratar o clique em uma comunidade
-function handleCommunityClick(communityId, communityName, regionId) {
-  console.log(`Comunidade selecionada: ${communityName} (ID: ${communityId}, Região: ${regionId})`);
-}
 
 // Função para adicionar uma nova comunidade
 async function addCommunity(regionId) {
@@ -371,37 +392,80 @@ async function onRegionClick(regionId, regionName) {
 }
 
 async function addPerson(communityId, regionId) {
-  const personName = prompt("Digite o nome da pessoa:");
-  
-  if (!personName) {
-    alert("O nome é obrigatório! Por favor, preencha o nome para continuar.");
-    return;
+  function promptRequired(message) {
+    let value = prompt(message);
+    if (value === null) {
+      alert("Cadastro cancelado.");
+      return null; // Retorna null para indicar o cancelamento
+    }
+    while (!value.trim()) { // Garante que o campo não esteja vazio
+      alert("Este campo é obrigatório! Por favor, preencha para continuar.");
+      value = prompt(message);
+      if (value === null) {
+        alert("Cadastro cancelado.");
+        return null;
+      }
+    }
+    return value;
   }
 
-  let personID = prompt("Digite o CPF da pessoa:");
-  
-  if (!personID) {
-    alert("O CPF é obrigatório! Por favor, preencha o CPF para continuar.");
-    return;
-  }
+  // Solicitação dos dados, cancelando caso qualquer um seja interrompido
+  const personName = promptRequired("Digite o nome da pessoa:");
+  if (personName === null) return;
 
-  const personRG = prompt("Digite o RG da pessoa:");
-  const houseNumber = prompt("Digite o número da casa:");
-  const coordinates = prompt("Digite as coordenadas geográficas: ");
-  const education = prompt("Digite a escolaridade:");
-  const profession = prompt("Digite a profissão:");
-  const age = prompt("Digite a idade:");
-  const birthDate = prompt("Digite a data de nascimento:");
-  const workCard = prompt("Digite o número da carteira de trabalho:");
-  const voterId = prompt("Digite o título de eleitor:");
-  const susCard = prompt("Digite o número do cartão SUS:");
-  const nis = prompt("Digite o NIS:");
-  const arrivalDate = prompt("Digite a data de chegada na comunidade:");
-  const mother = prompt("Digite o nome da mãe:");
-  const father = prompt("Digite o nome do pai:");
-  const maritalStatus = prompt("Digite o estado civil:");
-  const association = prompt("Digite a associação:");
-  const bolsaFamilia = prompt("A pessoa recebe Bolsa Família?");
+  const personID = promptRequired("Digite o CPF da pessoa:");
+  if (personID === null) return;
+
+  const personRG = promptRequired("Digite o RG da pessoa:");
+  if (personRG === null) return;
+
+  const houseNumber = promptRequired("Digite o número da casa:");
+  if (houseNumber === null) return;
+
+  const coordinates = promptRequired("Digite as coordenadas geográficas:");
+  if (coordinates === null) return;
+
+  const education = promptRequired("Digite a escolaridade:");
+  if (education === null) return;
+
+  const profession = promptRequired("Digite a profissão:");
+  if (profession === null) return;
+
+  const age = promptRequired("Digite a idade:");
+  if (age === null) return;
+
+  const birthDate = promptRequired("Digite a data de nascimento:");
+  if (birthDate === null) return;
+
+  const workCard = promptRequired("Digite o número da carteira de trabalho:");
+  if (workCard === null) return;
+
+  const voterId = promptRequired("Digite o título de eleitor:");
+  if (voterId === null) return;
+
+  const susCard = promptRequired("Digite o número do cartão SUS:");
+  if (susCard === null) return;
+
+  const nis = promptRequired("Digite o NIS:");
+  if (nis === null) return;
+
+  const arrivalDate = promptRequired("Digite a data de chegada na comunidade:");
+  if (arrivalDate === null) return;
+
+  const mother = promptRequired("Digite o nome da mãe:");
+  if (mother === null) return;
+
+  const father = promptRequired("Digite o nome do pai:");
+  if (father === null) return;
+
+  const maritalStatus = promptRequired("Digite o estado civil:");
+  if (maritalStatus === null) return;
+
+  const association = promptRequired("Digite a associação:");
+  if (association === null) return;
+
+  const bolsaFamilia = promptRequired("A pessoa recebe Bolsa Família?");
+  if (bolsaFamilia === null) return;
 
   try {
     await addDoc(collection(db, "regions", regionId, "communities", communityId, "people"), { 
@@ -425,12 +489,106 @@ async function addPerson(communityId, regionId) {
       association: association,
       bolsaFamilia: bolsaFamilia
     });
+
     console.log("Pessoa adicionada!");
+    alert("Pessoa cadastrada com sucesso!");
     listPeople(communityId, regionId); // Atualiza a lista de pessoas
   } catch (e) {
     console.error("Erro ao adicionar pessoa: ", e);
+    alert("Ocorreu um erro ao cadastrar a pessoa. Tente novamente.");
   }
 }
+
+
+async function editPerson(personId, personData, regionId, communityId) {
+  // Abre um formulário para editar os campos
+  const newName = prompt("Editar Nome", personData.name);
+  if (newName === null) return; // Se o usuário cancelar, sai da função sem fazer alterações
+
+  const newHouseNumber = prompt("Editar Número da Casa", personData.houseNumber);
+  if (newHouseNumber === null) return; // Se o usuário cancelar, sai da função sem fazer alterações
+
+  const newCoordinates = prompt("Editar Coordenadas Geográficas", personData.coordinates);
+  if (newCoordinates === null) return; // Se o usuário cancelar, sai da função sem fazer alterações
+
+  const newEducation = prompt("Editar Escolaridade", personData.education);
+  if (newEducation === null) return; // Se o usuário cancelar, sai da função sem fazer alterações
+
+  const newProfession = prompt("Editar Profissão", personData.profession);
+  if (newProfession === null) return; // Se o usuário cancelar, sai da função sem fazer alterações
+
+  const newAge = prompt("Editar Idade", personData.age);
+  if (newAge === null) return; // Se o usuário cancelar, sai da função sem fazer alterações
+
+  const newBirthDate = prompt("Editar Data de Nascimento", personData.birthDate);
+  if (newBirthDate === null) return; // Se o usuário cancelar, sai da função sem fazer alterações
+
+  const newCpd = prompt("Editar CPF", personData.cpf); // Campo CPF
+  if (newCpd === null) return; // Se o usuário cancelar, sai da função sem fazer alterações
+
+  const newRg = prompt("Editar RG", personData.rg); // Campo RG
+  if (newRg === null) return; // Se o usuário cancelar, sai da função sem fazer alterações
+
+  const newWorkCard = prompt("Editar Carteira de Trabalho", personData.workCard);
+  if (newWorkCard === null) return; // Se o usuário cancelar, sai da função sem fazer alterações
+
+  const newVoterId = prompt("Editar Título de Eleitor", personData.voterId);
+  if (newVoterId === null) return; // Se o usuário cancelar, sai da função sem fazer alterações
+
+  const newSusCard = prompt("Editar Cartão SUS", personData.susCard);
+  if (newSusCard === null) return; // Se o usuário cancelar, sai da função sem fazer alterações
+
+  const newNis = prompt("Editar NIS", personData.nis);
+  if (newNis === null) return; // Se o usuário cancelar, sai da função sem fazer alterações
+
+  const newArrivalDate = prompt("Editar Data de Chegada à Comunidade", personData.arrivalDate);
+  if (newArrivalDate === null) return; // Se o usuário cancelar, sai da função sem fazer alterações
+
+  const newMother = prompt("Editar Mãe", personData.mother);
+  if (newMother === null) return; // Se o usuário cancelar, sai da função sem fazer alterações
+
+  const newFather = prompt("Editar Pai", personData.father);
+  if (newFather === null) return; // Se o usuário cancelar, sai da função sem fazer alterações
+
+  const newMaritalStatus = prompt("Editar Estado Civil", personData.maritalStatus);
+  if (newMaritalStatus === null) return; // Se o usuário cancelar, sai da função sem fazer alterações
+
+  const newAssociation = prompt("Editar Associação", personData.association);
+  if (newAssociation === null) return; // Se o usuário cancelar, sai da função sem fazer alterações
+
+  const newBolsaFamilia = prompt("Recebe Bolsa Família?", personData.bolsaFamilia);
+  if (newBolsaFamilia === null) return; // Se o usuário cancelar, sai da função sem fazer alterações
+
+  // Se o usuário não cancelar, atualiza os dados no Firestore
+  try {
+    await updateDoc(doc(db, "regions", regionId, "communities", communityId, "people", personId), {
+      name: newName,
+      houseNumber: newHouseNumber,
+      coordinates: newCoordinates,
+      education: newEducation,
+      profession: newProfession,
+      age: newAge,
+      birthDate: newBirthDate,
+      workCard: newWorkCard,
+      voterId: newVoterId,
+      susCard: newSusCard,
+      nis: newNis,
+      arrivalDate: newArrivalDate,
+      mother: newMother,
+      father: newFather,
+      maritalStatus: newMaritalStatus,
+      association: newAssociation,
+      bolsaFamilia: newBolsaFamilia,
+      cpf: newCpd, // Atualizando CPD
+      rg: newRg // Atualizando RG
+    });
+    console.log("Pessoa atualizada!");
+    listPeople(communityId, regionId); // Atualiza a lista de pessoas
+  } catch (e) {
+    console.error("Erro ao atualizar pessoa: ", e);
+  }
+}
+
 
 async function listPeople(communityId, regionId) {
   try {
@@ -439,7 +597,7 @@ async function listPeople(communityId, regionId) {
     peopleList.innerHTML = ""; // Limpa a lista de pessoas
 
     if (querySnapshot.empty) {
-      console.log("Nenhuma pessoa encontrada."); // Exibe a mensagem no console
+      console.log("Nenhuma pessoa encontrada.");
       return;
     }
 
@@ -450,7 +608,6 @@ async function listPeople(communityId, regionId) {
 
     peopleArray.forEach((personData, index) => {
       const personId = personData.id;
-
       const row = document.createElement("tr");
 
       const numberCell = document.createElement("td");
@@ -466,9 +623,8 @@ async function listPeople(communityId, regionId) {
       row.appendChild(houseNumberCell);
 
       const coordsCell = document.createElement("td");
-      coordsCell.textContent = personData.coordinates || "N/A"; // Exibe a coordenada como string
+      coordsCell.textContent = personData.coordinates || "N/A";
       row.appendChild(coordsCell);
-
 
       const educationCell = document.createElement("td");
       educationCell.textContent = personData.education || "N/A";
@@ -534,43 +690,39 @@ async function listPeople(communityId, regionId) {
       bolsaFamiliaCell.textContent = personData.bolsaFamilia || "N/A";
       row.appendChild(bolsaFamiliaCell);
 
-      // Botão de Editar com ícone
+      // Botão de Editar
       const editCell = document.createElement("td");
       const editButton = document.createElement("button");
       const editIcon = document.createElement("img");
-      editIcon.src = "/images/editar.png"; // Caminho para a imagem de editar
-      editIcon.alt = "Editar"; // Texto alternativo
-      editButton.style.border = "none"; // Remove a borda do botão
-      editButton.style.outline = "none"; // Remove o contorno (foco)
-      editIcon.style.width = "25px"; // Ajuste do tamanho da imagem
-      editIcon.style.height = "25px"; // Ajuste do tamanho da imagem
+      editIcon.src = "/images/editar.png";
+      editIcon.alt = "Editar";
+      editButton.style.border = "none";
+      editButton.style.outline = "none";
+      editIcon.style.width = "25px";
+      editIcon.style.height = "25px";
       editButton.appendChild(editIcon);
-
       editButton.addEventListener("click", (e) => {
-        e.stopPropagation(); // Evita que o clique no botão de editar dispare o evento de clique na comunidade
-        editPerson(personId, personData,regionId, communityId); // Passando os dados da pessoa
+        e.stopPropagation();
+        editPerson(personId, personData, regionId, communityId);
       });
       editCell.appendChild(editButton);
       row.appendChild(editCell);
 
-      // Botão de Excluir com ícone
+      // Botão de Excluir
       const deleteCell = document.createElement("td");
       const deleteButton = document.createElement("button");
       const deleteIcon = document.createElement("img");
-      deleteIcon.src = "/images/excluir.png"; // Caminho para a imagem de excluir
-      deleteIcon.alt = "Excluir"; // Texto alternativo
-      deleteButton.style.border = "none"; // Remove a borda do botão
-      deleteButton.style.outline = "none"; // Remove o contorno (foco)
-      deleteIcon.style.width = "25px"; // Ajuste do tamanho da imagem
-      deleteIcon.style.height = "25px"; // Ajuste do tamanho da imagem
+      deleteIcon.src = "/images/excluir.png";
+      deleteIcon.alt = "Excluir";
+      deleteButton.style.border = "none";
+      deleteButton.style.outline = "none";
+      deleteIcon.style.width = "25px";
+      deleteIcon.style.height = "25px";
       deleteButton.appendChild(deleteIcon);
-
       deleteButton.addEventListener("click", (e) => {
-        e.stopPropagation(); // Evita que o clique no botão de excluir dispare o evento de clique na comunidade
-        console.log("Excluindo pessoa:", personId, regionId, communityId); // Verifique se esses valores são corretos
-        deletePerson(personId, regionId, communityId); // Excluindo a pessoa
+        e.stopPropagation();
+        deletePerson(personId, personData.name, regionId, communityId);
       });
-      
       deleteCell.appendChild(deleteButton);
       row.appendChild(deleteCell);
 
@@ -581,61 +733,22 @@ async function listPeople(communityId, regionId) {
   }
 }
 
+async function deletePerson(personId, personName, regionId, communityId) {
+  const confirmation = confirm(`Você tem certeza que deseja excluir a pessoa ${personName}?`);
 
-async function editPerson(personId, personData, regionId, communityId) {
-  // Abre um formulário para editar os campos
-  const newName = prompt("Editar Nome", personData.name);
-  const newHouseNumber = prompt("Editar Número da Casa", personData.houseNumber);
-  const newCoordinates = prompt("Editar Coordenadas Geográficas", personData.coordinates);
-  const newEducation = prompt("Editar Escolaridade", personData.education);
-  const newProfession = prompt("Editar Profissão", personData.profession);
-  const newAge = prompt("Editar Idade", personData.age);
-  const newBirthDate = prompt("Editar Data de Nascimento", personData.birthDate);
-  const newCpd = prompt("Editar CPF", personData.cpf); // Campo CPF
-  const newRg = prompt("Editar RG", personData.rg); // Campo RG
-  const newWorkCard = prompt("Editar Carteira de Trabalho", personData.workCard);
-  const newVoterId = prompt("Editar Título de Eleitor", personData.voterId);
-  const newSusCard = prompt("Editar Cartão SUS", personData.susCard);
-  const newNis = prompt("Editar NIS", personData.nis);
-  const newArrivalDate = prompt("Editar Data de Chegada à Comunidade", personData.arrivalDate);
-  const newMother = prompt("Editar Mãe", personData.mother);
-  const newFather = prompt("Editar Pai", personData.father);
-  const newMaritalStatus = prompt("Editar Estado Civil", personData.maritalStatus);
-  const newAssociation = prompt("Editar Associação", personData.association);
-  const newBolsaFamilia = prompt("Recebe Bolsa Família?", personData.bolsaFamilia);
-
-
-
-
-  // Atualiza os dados no Firestore
-  try {
-    await updateDoc(doc(db, "regions", regionId, "communities", communityId, "people", personId), {
-      name: newName,
-      houseNumber: newHouseNumber,
-      coordinates: newCoordinates,
-      education: newEducation,
-      profession: newProfession,
-      age: newAge,
-      birthDate: newBirthDate,
-      workCard: newWorkCard,
-      voterId: newVoterId,
-      susCard: newSusCard,
-      nis: newNis,
-      arrivalDate: newArrivalDate,
-      mother: newMother,
-      father: newFather,
-      maritalStatus: newMaritalStatus,
-      association: newAssociation,
-      bolsaFamilia: newBolsaFamilia,
-      cpf: newCpd, // Atualizando CPD
-      rg: newRg // Atualizando RG
-    });
-    console.log("Pessoa atualizada!");
-    listPeople(communityId, regionId); // Atualiza a lista de pessoas
-  } catch (e) {
-    console.error("Erro ao atualizar pessoa: ", e);
+  if (confirmation) {
+    try {
+      const personRef = doc(db, "regions", regionId, "communities", communityId, "people", personId);
+      await deleteDoc(personRef);
+      alert(`Pessoa ${personName} foi excluída com sucesso!`);
+      listPeople(communityId, regionId);
+    } catch (error) {
+      console.error("Erro ao excluir pessoa:", error);
+      alert("Erro ao excluir a pessoa. Tente novamente.");
+    }
   }
 }
+
 
 
 // Espera o DOM carregar completamente
@@ -700,7 +813,7 @@ async function downloadPDF(communityId, regionId) {
       return;
     }
 
-    const logo = await loadImage('ACRQAT.png');
+    const logo = await loadImage('/images/ACRQAT.png');
     const pageWidth = pdfDoc.internal.pageSize.width;
     pdfDoc.addImage(logo, 'PNG', (pageWidth - 50) / 2, 10, 50, 50);
 
@@ -751,7 +864,7 @@ async function downloadPDF(communityId, regionId) {
       yPosition += 10;
     });
 
-    pdfDoc.save('Comunidad_Region_People.pdf');
+    pdfDoc.save('Comunidade: Alto Trombetas.pdf');
   } catch (error) {
     console.error("Erro ao gerar o PDF:", error);
   }
