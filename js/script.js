@@ -799,7 +799,6 @@ async function getRealIds() {
   }
 }
 
-// Função para gerar o PDF
 async function downloadPDF(communityId, regionId) {
   const { jsPDF } = window.jspdf;
   const pdfDoc = new jsPDF();
@@ -813,58 +812,91 @@ async function downloadPDF(communityId, regionId) {
       return;
     }
 
-    const logo = await loadImage('/images/ACRQAT.png');
-    const pageWidth = pdfDoc.internal.pageSize.width;
-    pdfDoc.addImage(logo, 'PNG', (pageWidth - 50) / 2, 10, 50, 50);
-
-    pdfDoc.setFontSize(18);
-    pdfDoc.text(`Resposável da Familia: ${communityName}`, 20, 70);
-    pdfDoc.text(`Comunidade: ${regionName}`, 20, 80);
-
+    // Obter dados das pessoas
     const peopleSnapshot = await getDocs(collection(db, "regions", regionId, "communities", communityId, "people"));
     const peopleArray = peopleSnapshot.docs.map(doc => doc.data());
 
-    pdfDoc.setFontSize(12);
-    let yPosition = 100;
-    const pageHeight = pdfDoc.internal.pageSize.height;
-    
-    peopleArray.forEach((personData, index) => {
-      // Adiciona nova página antes de imprimir caso ultrapasse o limite
-      if (yPosition + 60 > pageHeight - 20) { 
-        pdfDoc.addPage();
-        yPosition = 20;
-      }
-      
-      pdfDoc.text(`${index + 1}. Nome: ${personData.name || "N/A"}`, 20, yPosition);
-      pdfDoc.text(`   Coordenadas: ${personData.coordinates || "N/A"}`, 120, yPosition);
-      yPosition += 7;
-      pdfDoc.text(`   Escolaridade: ${personData.education || "N/A"}`, 20, yPosition);
-      pdfDoc.text(`   Profissão: ${personData.profession || "N/A"}`, 120, yPosition);
-      yPosition += 7;
-      pdfDoc.text(`   Idade: ${personData.age || "N/A"}`, 20, yPosition);
-      pdfDoc.text(`   Data de Nascimento: ${personData.birthDate || "N/A"}`, 120, yPosition);
-      yPosition += 7;
-      pdfDoc.text(`   CPF: ${personData.cpf || "N/A"}`, 20, yPosition);
-      pdfDoc.text(`   RG: ${personData.rg || "N/A"}`, 120, yPosition);
-      yPosition += 7;
-      pdfDoc.text(`   Carteira de Trabalho: ${personData.workCard || "N/A"}`, 20, yPosition);
-      pdfDoc.text(`   Título de Eleitor: ${personData.voterId || "N/A"}`, 120, yPosition);
-      yPosition += 7;
-      pdfDoc.text(`   Cartão SUS: ${personData.susCard || "N/A"}`, 20, yPosition);
-      pdfDoc.text(`   NIS: ${personData.nis || "N/A"}`, 120, yPosition);
-      yPosition += 7;
-      pdfDoc.text(`   Data de Chegada: ${personData.arrivalDate || "N/A"}`, 20, yPosition);
-      pdfDoc.text(`   Mãe: ${personData.mother || "N/A"}`, 120, yPosition);
-      yPosition += 7;
-      pdfDoc.text(`   Pai: ${personData.father || "N/A"}`, 20, yPosition);
-      pdfDoc.text(`   Estado Civil: ${personData.maritalStatus || "N/A"}`, 120, yPosition);
-      yPosition += 7;
-      pdfDoc.text(`   Associação: ${personData.association || "N/A"}`, 20, yPosition);
-      pdfDoc.text(`   Bolsa Família: ${personData.bolsaFamilia || "N/A"}`, 120, yPosition);
-      yPosition += 10;
-    });
+    if (peopleArray.length === 0) {
+      console.warn("Nenhuma pessoa encontrada nesta comunidade.");
+      return;
+    }
 
-    pdfDoc.save('Comunidade: Alto Trombetas.pdf');
+    const pageHeight = pdfDoc.internal.pageSize.height;
+    const marginLeft = 20;
+    const lineHeight = 7; // Espaçamento entre linhas
+    const maxYPosition = pageHeight - 20; // Margem inferior para evitar corte
+
+    for (let i = 0; i < peopleArray.length; i++) {
+      const personData = peopleArray[i];
+
+      if (i > 0) pdfDoc.addPage(); // Nova página para cada pessoa
+
+      // Adicionar logo
+      try {
+        const logo = await loadImageBase64('/images/ACRQAT.png');
+        const pageWidth = pdfDoc.internal.pageSize.width;
+        pdfDoc.addImage(logo, 'PNG', (pageWidth - 50) / 2, 10, 50, 50);
+      } catch (error) {
+        console.warn("A logo não pôde ser carregada, mas o PDF será gerado sem ela.");
+      }
+
+      pdfDoc.setFontSize(18);
+      pdfDoc.text(`Responsável da Família: ${communityName}`, 20, 70);
+      pdfDoc.text(`Comunidade: ${regionName}`, 20, 80);
+
+      pdfDoc.setFontSize(12);
+      let yPosition = 100;
+
+      // Função para verificar se a posição y excedeu a altura da página
+      function checkPageBreak() {
+        if (yPosition > maxYPosition) {
+          pdfDoc.addPage();
+          yPosition = 20; // Reinicia no topo da nova página
+        }
+      }
+
+      // Organizar dados em pares chave-valor
+      const dataPairs = [
+        ["Nome", personData.name],
+        ["Número da Casa", personData.houseNumber],
+        ["Coordenadas", personData.coordinates],
+        ["Escolaridade", personData.education],
+        ["Profissão", personData.profession],
+        ["Idade", personData.age],
+        ["Data de Nascimento", personData.birthDate],
+        ["CPF", personData.cpf],
+        ["RG", personData.rg],
+        ["Carteira de Trabalho", personData.workCard],
+        ["Título de Eleitor", personData.voterId],
+        ["Cartão SUS", personData.susCard],
+        ["NIS", personData.nis],
+        ["Data de Chegada", personData.arrivalDate],
+        ["Mãe", personData.mother],
+        ["Pai", personData.father],
+        ["Estado Civil", personData.maritalStatus],
+        ["Associação", personData.association],
+        ["Bolsa Família", personData.bolsaFamilia]
+      ];
+
+      // Dividir a página em duas colunas
+      const colWidth = (pdfDoc.internal.pageSize.width - 40) / 2; // Divide a largura da página
+      let xPosition1 = marginLeft; // Posição para a primeira coluna
+      let xPosition2 = marginLeft + colWidth; // Posição para a segunda coluna
+
+      // Adicionar os dados na tabela de duas colunas
+      for (let i = 0; i < dataPairs.length; i++) {
+        const [key, value] = dataPairs[i];
+        
+        // Adicionar chave e valor na primeira e segunda coluna
+        pdfDoc.text(`${key}:`, xPosition1, yPosition);
+        pdfDoc.text(`${value || "N/A"}`, xPosition2, yPosition);
+
+        yPosition += lineHeight;
+        checkPageBreak();
+      }
+    }
+
+    pdfDoc.save(`Comunidade_${communityName}.pdf`);
   } catch (error) {
     console.error("Erro ao gerar o PDF:", error);
   }
@@ -872,17 +904,24 @@ async function downloadPDF(communityId, regionId) {
 
 
 
-// Função auxiliar para carregar imagem
-function loadImage(src) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = (error) => {
-      console.error("Erro ao carregar a imagem:", error);
-      reject(error);
-    };
-    img.src = src;
-  });
+
+// Função auxiliar para carregar imagem como base64
+async function loadImageBase64(url) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Erro ao carregar a imagem.");
+    
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error("Erro ao carregar imagem:", error);
+    throw error;
+  }
 }
 
 // Função para obter nome da comunidade
